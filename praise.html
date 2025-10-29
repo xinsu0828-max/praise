@@ -1,0 +1,269 @@
+!doctype html
+html lang=zh-CN
+head
+  meta charset=utf-8 
+  meta name=viewport content=width=device-width,initial-scale=1,viewport-fit=cover 
+  meta name=apple-mobile-web-app-capable content=yes 
+  title送你满屏赞美title
+  style
+    html,body{
+      height100%;
+      margin0;
+      padding0;
+      -webkit-tap-highlight-color transparent;
+      background linear-gradient(180deg,#fff6fb 0%, #fff0f8 50%, #fffaf0 100%);
+      font-family Helvetica Neue, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+      overflowhidden;
+    }
+
+    .container{
+      positionrelative;
+      width100%;
+      height100%;
+      touch-action manipulation;
+    }
+
+     控制面板 
+    .controls{
+      positionfixed;
+      left50%;
+      transformtranslateX(-50%);
+      bottom18px;
+      z-index10000;
+      displayflex;
+      gap8px;
+      align-itemscenter;
+      backgroundrgba(255,255,255,0.6);
+      backdrop-filter blur(6px);
+      padding8px 12px;
+      border-radius999px;
+      box-shadow0 6px 18px rgba(0,0,0,0.12);
+    }
+    .btn{
+      font-size15px;
+      padding8px 12px;
+      border-radius20px;
+      border none;
+      cursorpointer;
+    }
+    .btn-start{ background linear-gradient(90deg,#ff6fb5,#ff9ecb); color#fff; }
+    .btn-stop{ background#fff; border1px solid #ffd1e8; color#ff3b88; }
+    .btn-copy{ background#fff; border1px solid #e0e0e0; color#333; }
+
+     飘字样式 
+    .floatText{
+      positionfixed;
+      white-spacenowrap;
+      font-weight600;
+      pointer-eventsnone;
+      z-index9999;
+      font-size16px;
+      will-change transform, opacity;
+      text-shadow 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+     动画：从下往上并左右摇摆，同时淡入淡出 
+    @keyframes floatUp {
+      0% { transform translate3d(var(--x-start,0), 40vh, 0) rotate(var(--r,0deg)) scale(1); opacity0; }
+      10% { opacity1; }
+      50% { transform translate3d(calc(var(--x-start,0) + var(--x-offset, 20px)), -10vh, 0) rotate(calc(var(--r,0deg)  0.6)) scale(1.03); }
+      100% { transform translate3d(calc(var(--x-start,0) + var(--x-offset, -40px)), -120vh, 0) rotate(calc(var(--r,0deg)  1.2)) scale(0.95); opacity0;}
+    }
+
+     小屏适配加大字 
+    @media (max-width420px){
+      .floatText{ font-size18px; }
+      .controls{ bottom14px; padding6px 10px; }
+    }
+
+     轻度减少动画（可选） 
+    @media (prefers-reduced-motion reduce){
+      .floatText { animation none !important; transition none !important; opacity1 !important; transformnone !important;}
+    }
+
+     顶部标题（可隐藏） 
+    .title{
+      position absolute;
+      top18px;
+      left50%;
+      transformtranslateX(-50%);
+      z-index1000;
+      font-size18px;
+      font-weight700;
+      color#ff3b88;
+      text-shadow 0 1px 0 rgba(255,255,255,0.6);
+    }
+  style
+head
+body
+  div class=container id=app
+    div class=title给你满屏的赞美 ✨div
+
+    div class=controls id=controls
+      button class=btn btn-start id=btnStart开始飘字button
+      button class=btn btn-stop id=btnStop暂停button
+      button class=btn btn-copy id=btnCopy复制赞美文本button
+    div
+  div
+
+  script
+    (function(){
+       示例赞美短语（你可以按需修改、添加）
+      const phrases = [
+        你真漂亮😍,
+        笑起来真甜,
+        好好吃饭哦,
+        气质好棒,
+        声音太好听了,
+        今天也很美,
+        眼睛像星星✨,
+        衣服好好看,
+        有你真幸运,
+        你的笑容暖到心里,
+        超有魅力,
+        太可爱了,
+        美得不像话,
+        点赞你的美,
+        心动了
+      ];
+
+      const app = document.getElementById('app');
+      let running = false;
+      let spawnTimer = null;
+      let maxPerSecond = 3;  每秒最大生成数量（平衡性能）
+      const maxTotal = 80;  页面最多同时存在的飘字（防止卡顿）
+
+      function rand(min, max){
+        return Math.random()  (max - min) + min;
+      }
+
+      function createFloatText(text){
+        const span = document.createElement('div');
+        span.className = 'floatText';
+        span.textContent = text;
+
+         随机起始 x（百分比）
+        const leftPercent = rand(5, 95);
+        span.style.left = leftPercent + '%';
+
+         随机颜色（柔和粉色系）
+        const hue = rand(330, 15);  wrap-around allowed
+        const sat = rand(70, 95);
+        const light = rand(50,65);
+        span.style.color = `hsl(${hue}deg ${sat}% ${light}%)`;
+
+         随机大小
+        const scale = rand(0.95, 1.12);
+        span.style.transform = `translate3d(0,0,0) scale(${scale})`;
+
+         动画时长（长短不同会产生层次感）
+        const duration = rand(4200, 9000);
+         随机左右偏移量（用于动画中间效果）
+        const xOffset = (Math.random()  0.5  1  -1)  rand(12, 80);  px
+        const rotate = (Math.random() - 0.5)  40;  deg
+
+         CSS variables for keyframes
+        span.style.setProperty('--x-offset', xOffset + 'px');
+        span.style.setProperty('--x-start', '0px');
+        span.style.setProperty('--r', rotate + 'deg');
+
+         随机延迟，制造波浪
+        const delay = rand(0, 800);
+
+        span.style.animation = `floatUp ${duration}ms linear ${delay}ms forwards`;
+
+         可选：交互（长按暂停特定文字）
+        span.addEventListener('touchstart', function(e){
+          e.stopPropagation();
+        }, {passivetrue});
+
+        app.appendChild(span);
+
+         移除元素，在动画结束后清理
+        setTimeout(()={
+          if (span && span.parentNode) span.parentNode.removeChild(span);
+        }, duration + delay + 200);
+      }
+
+      function spawnBatch(){
+         控制总数量
+        const current = document.querySelectorAll('.floatText').length;
+        if (current  maxTotal) return;
+
+         每次生成 1~maxPerSecond 个
+        const count = Math.floor(rand(1, maxPerSecond + 1));
+        for (let i=0;icount;i++){
+          const phrase = phrases[Math.floor(Math.random()  phrases.length)];
+          createFloatText(phrase);
+        }
+      }
+
+      function start(){
+        if (running) return;
+        running = true;
+         立刻生成一点，视觉效果更好
+        for (let i=0;i8;i++){
+          setTimeout(()= spawnBatch(), i120);
+        }
+         周期生成
+        spawnTimer = setInterval(spawnBatch, 600);
+      }
+
+      function stop(){
+        running = false;
+        if (spawnTimer){
+          clearInterval(spawnTimer);
+          spawnTimer = null;
+        }
+      }
+
+       绑定按钮
+      document.getElementById('btnStart').addEventListener('click', ()={
+        start();
+      });
+      document.getElementById('btnStop').addEventListener('click', ()={
+        if (running) stop();
+        else start();
+      });
+
+       复制全部短语到剪贴板（方便分享到对话）
+      document.getElementById('btnCopy').addEventListener('click', async ()={
+        try {
+          await navigator.clipboard.writeText(phrases.join('n'));
+          alert('已复制赞美文本，你可以粘贴发送〜');
+        } catch(e){
+          alert('复制失败：' + (e && e.message  e.message  '请长按复制'));
+        }
+      });
+
+       自动启动（可注释掉，如果你不想自动开始）
+       start();
+
+       点击屏幕也会触发飘字（交互）
+      app.addEventListener('touchstart', function(e){
+         每次点击生成一组
+        for (let i=0;i6;i++){
+          setTimeout(()= spawnBatch(), i80);
+        }
+      }, {passivetrue});
+
+       允许外部通过 URL 参数自定义短语（例如 text=你真帅保持微笑）
+      (function loadFromUrl(){
+        try {
+          const params = new URLSearchParams(location.search);
+          const txt = params.get('text');
+          if (txt){
+             用  或 换行 分隔
+            const parts = txt.split(n).map(s = s.trim()).filter(Boolean);
+            if (parts.length) {
+               插到数组开头以优先显示
+              phrases.unshift(...parts.slice(0, 20));
+            }
+          }
+        } catch(e){}
+      })();
+
+    })();
+  script
+body
+html
